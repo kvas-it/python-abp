@@ -32,6 +32,78 @@ def test_parse_filter():
     assert line.expression == '||example.com/banner.gif'
 
 
+def test_parse_bfilter():
+    flt = '||example.com/banner.gif$image,~match-case,domain=abc.com|def.org'
+    line = parse_line(flt)
+    assert line.type == 'filter'
+    assert line.filter_type == 'blocking'
+    assert line.expression == flt
+    assert not line.is_exception
+    assert line.options == {'image': True, 'match-case': False,
+                            'domain': ['abc.com', 'def.org']}
+    assert line.pattern == '||example.com/banner.gif'
+
+
+def test_parse_bfilter_exc():
+    flt = '@@||example.com/good.gif'
+    line = parse_line(flt)
+    assert line.type == 'filter'
+    assert line.filter_type == 'blocking'
+    assert line.expression == flt
+    assert line.is_exception
+    assert line.options == {}
+    assert line.pattern == '||example.com/good.gif'
+
+
+def test_parse_hfilter():
+    """Element hiding filter with a CSS selector."""
+    flt = 'abc.com,cdf.com##div#ad1'
+    line = parse_line(flt)
+    assert line.type == 'filter'
+    assert line.filter_type == 'hiding'
+    assert line.expression == flt
+    assert not line.is_exception
+    assert line.domains == ['abc.com', 'cdf.com']
+    assert line.selector == 'div#ad1'
+
+
+def test_parse_hfilter_exc():
+    """Element hiding exception."""
+    flt = '#@#div#ad1'
+    line = parse_line(flt)
+    assert line.type == 'filter'
+    assert line.filter_type == 'hiding'
+    assert line.expression == flt
+    assert line.is_exception
+    assert line.domains == []
+    assert line.selector == 'div#ad1'
+
+
+def test_parse_hfilter_old():
+    """Simplified element hiding filter."""
+    flt = 'abc.com#div(foo)(name=bar)(value=baz)'
+    line = parse_line(flt)
+    assert line.type == 'filter'
+    assert line.filter_type == 'hiding'
+    assert line.expression == flt
+    assert not line.is_exception
+    assert line.domains == ['abc.com']
+    assert line.selector == ('div.foo[name="bar"][value="baz"],'
+                             'div#foo[name="bar"][value="baz"]')
+
+
+def test_parse_hfilter_old_2id():
+    """Simplified element hiding filter with 2 ids."""
+    with pytest.raises(ParseError):
+        parse_line('abc.com#div(foo)(bar)')
+
+
+def test_parse_hfilter_empty():
+    """Element hiding filter that matches everything."""
+    with pytest.raises(ParseError):
+        parse_line('abc.com#*')
+
+
 def test_parse_comment():
     line = parse_line('! Block foo')
     assert line.type == 'comment'

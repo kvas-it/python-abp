@@ -43,7 +43,7 @@ class DevEnvCommand(Command):
 
 setup(
     name='python-abp',
-    version='0.0.1',
+    version='0.0.2',
     description='ABP python tools',
     long_description='A library for working with Adblock Plus filter lists.',
     author='Eyeo GmbH',
